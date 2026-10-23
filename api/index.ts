@@ -60,7 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'same-origin');
   if (req.method === 'OPTIONS') return res.status(204).end();
   try {
-    const path = String(req.url || '').split('?')[0].replace(/^\/api\/?/, '').split('/').filter(Boolean);
+    // o vercel.json reescreve /api/* para /api/index?p=<caminho>; sem o parâmetro, usa a própria URL
+    const qp = (req.query as any)?.p;
+    const rawPath = qp !== undefined ? (Array.isArray(qp) ? qp.join('/') : String(qp)) : String(req.url || '').split('?')[0].replace(/^\/api\/?/, '');
+    const path = decodeURIComponent(rawPath).split('/').filter(Boolean);
     const body = (req.body && typeof req.body === 'object') ? req.body : {};
 
     if (path[0] === 'health' && req.method === 'GET') { await sql()`SELECT 1`; return json(res, 200, { ok: true, database: 'connected' }); }
